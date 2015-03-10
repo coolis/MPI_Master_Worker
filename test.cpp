@@ -18,7 +18,7 @@ class MW : public Master_Worker {
 public:
     MW(int wk_sz, int rs_sz) : Master_Worker(wk_sz, rs_sz) {};
     void create() {
-        for (int i=0; i<5000; i++) {
+        for (int i=0; i<1000; i++) {
             work_t* w = new work_t(1, 1);
             wPool.push_back(w);
         }

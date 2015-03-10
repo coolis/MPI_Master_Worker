@@ -64,7 +64,6 @@ void Master_Worker::directMode() {
 }
 
 void Master_Worker::assignMode() {
-    int tag;
     int n = wPool.size();
     int wNum = sz-1;
     vector<result_t*> rList;
@@ -77,44 +76,47 @@ void Master_Worker::assignMode() {
         int ind;
         //send sequentially to all workers
         for(ind = 0; ind < wNum && ind < n; ind++){
+            int exit = 0;
+            MPI::COMM_WORLD.Send(&exit, 1, MPI::INT, ind+1, 0);
             tmpW = wPool[ind];
-            MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::INT, ind+1, tag);
+            MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::BYTE, ind+1, 1);
         }
         //start to wait for responce,
         for(int i = 0; i < n; i++){
             //cout << "r_sz: " << result_sz << endl;
             result_t* newR = (result_t*) malloc(result_sz);
-            cout << "here" << endl;
-            MPI::COMM_WORLD.Recv(newR, result_sz, MPI::INT, MPI::ANY_SOURCE, tag, status);
-            cout << status.Get_source() << endl;
+            MPI::COMM_WORLD.Recv(newR, result_sz, MPI::BYTE, MPI::ANY_SOURCE, 1, status);
             rList.push_back(newR);
             //see if work left
-            if(ind <= n){
-                tmpW = wPool[ind-1];
+            if(ind < n){
+                tmpW = wPool[ind];
                 int tmpTar = status.Get_source();
-                MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::INT, tmpTar, tag);
+                int exit = 0;
+                MPI::COMM_WORLD.Send(&exit, 1, MPI::INT, tmpTar, 0);
+                MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::BYTE, tmpTar, 1);
                 ind++;
             }
         }
         //send msgs to stop workers
         for(int i = 1; i <= wNum; i++){
-            MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::INT, i, 0);
+            int exit = 1;
+            MPI::COMM_WORLD.Send(&exit, 1, MPI::INT, i, 0);
         }
         result(rList, finalR);
     }
     else{
         //get work and send it back
         while(1){
-            work_t* newW = (work_t*) malloc(work_sz);
-            MPI::COMM_WORLD.Recv(newW, work_sz, MPI::INT, 0, tag);
-            if(!tag){
+            int exit; 
+            MPI::COMM_WORLD.Recv(&exit, 1, MPI::INT, 0, 0);
+            if(exit){
                 cout << "fuck" << endl;
                 break;
             }
+            work_t* newW = (work_t*) malloc(work_sz);
+            MPI::COMM_WORLD.Recv(newW, work_sz, MPI::BYTE, 0, 1);
             tmpR = compute(newW);
-            rList.push_back(tmpR);
-            result(rList, finalR);
-            MPI::COMM_WORLD.Send(finalR, result_sz, MPI::INT, 0, tag);
+            MPI::COMM_WORLD.Send(tmpR, result_sz, MPI::BYTE, 0, 1);
         }
     }
 }
