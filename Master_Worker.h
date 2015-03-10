@@ -12,7 +12,7 @@ struct result_t;
 class Master_Worker{
 public:
     Master_Worker();
-    Master_Worker(int wk_sz, int rs_sz, int m=0);
+    Master_Worker(int wk_sz, int rs_sz, int m=1);
     
     //Run Function, Master Worker implementation
     void Run();

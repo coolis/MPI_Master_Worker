@@ -65,12 +65,58 @@ void Master_Worker::directMode() {
 
 void Master_Worker::assignMode() {
     int tag;
+    int n = wPool.size();
+    int wNum = sz-1;
     vector<result_t*> rList;
+    result_t* tmpR;
+    work_t* tmpW;
     if (rank == MASTER_RANK) {
         create();
-        
+        int n = wPool.size();
+        int wNum = sz-1;
+        int ind;
+        //send sequentially to all workers
+        for(ind = 0; ind < wNum && ind < n; ind++){
+            tmpW = wPool[ind];
+            MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::INT, ind+1, tag);
+        }
+        //start to wait for responce,
+        for(int i = 0; i < n; i++){
+            //cout << "r_sz: " << result_sz << endl;
+            result_t* newR = (result_t*) malloc(result_sz);
+            cout << "here" << endl;
+            MPI::COMM_WORLD.Recv(newR, result_sz, MPI::INT, MPI::ANY_SOURCE, tag, status);
+            cout << status.Get_source() << endl;
+            rList.push_back(newR);
+            //see if work left
+            if(ind <= n){
+                tmpW = wPool[ind-1];
+                int tmpTar = status.Get_source();
+                MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::INT, tmpTar, tag);
+                ind++;
+            }
+        }
+        //send msgs to stop workers
+        for(int i = 1; i <= wNum; i++){
+            MPI::COMM_WORLD.Send(tmpW, work_sz, MPI::INT, i, 0);
+        }
+        result(rList, finalR);
     }
-
+    else{
+        //get work and send it back
+        while(1){
+            work_t* newW = (work_t*) malloc(work_sz);
+            MPI::COMM_WORLD.Recv(newW, work_sz, MPI::INT, 0, tag);
+            if(!tag){
+                cout << "fuck" << endl;
+                break;
+            }
+            tmpR = compute(newW);
+            rList.push_back(tmpR);
+            result(rList, finalR);
+            MPI::COMM_WORLD.Send(finalR, result_sz, MPI::INT, 0, tag);
+        }
+    }
 }
 
 

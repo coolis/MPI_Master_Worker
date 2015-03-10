@@ -38,9 +38,7 @@ public:
 
     result_t* compute(work_t* work) {
         int r = 0;
-        for (int i=0; i<=100000; i++) {
-            r = work->x + work->y;
-        }
+        r = work->x + work->y;
         result_t *res = new result_t(r);
         return res;
     }
