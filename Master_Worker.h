@@ -12,7 +12,7 @@ struct result_t;
 class Master_Worker{
 public:
     Master_Worker();
-    Master_Worker(int wk_sz, int rs_sz, int m=1);
+    Master_Worker(int wk_sz, int rs_sz, int m=0);
     
     //Run Function, Master Worker implementation
     void Run();
@@ -33,7 +33,7 @@ protected:
     virtual int result(vector<result_t*> &res, result_t* &tmpR) = 0;
     
     //distribute the works, and compute each portion of the list based on the rank number
-    virtual result_t* compute(work_t* work) = 0;
+    virtual result_t* compute(work_t* &work) = 0;
 
 private:
     int rank, sz;

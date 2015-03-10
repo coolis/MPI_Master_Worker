@@ -3,6 +3,8 @@
 #include <string>
 #include <iostream>
 #include <mpi.h>
+#include <ctime>
+#include <cstdio>
 #include "Master_Worker.h"
 
 using namespace std;
@@ -31,21 +33,21 @@ void Master_Worker::Run(){
 }
 
 void Master_Worker::directMode() {
-    int tag;
-    create();
-    int n = wPool.size();
-    int wNum = sz-1;
+    int tag=1;
     vector<result_t*> rList;
     if(rank == MASTER_RANK){
         for(int i = 1; i < sz; i++){
             result_t* tmpR = (result_t*) malloc(result_sz);
-            MPI::COMM_WORLD.Recv(tmpR, result_sz, MPI::INT, i, tag);
+            MPI::COMM_WORLD.Recv(tmpR, result_sz, MPI::BYTE, i, tag);
             rList.push_back(tmpR);
         }
         //get the final result
         result(rList, finalR);
     }
     else{
+        create();
+        int n = wPool.size();
+        int wNum = sz-1;
         int tmpSize = n/wNum;
         int tmpRem = n%wNum;
         result_t* tmpR;
@@ -58,7 +60,7 @@ void Master_Worker::directMode() {
             rList.push_back(tmpR);
         }
         result(rList, finalR);
-        MPI::COMM_WORLD.Send(finalR, result_sz, MPI::INT, 0, tag);
+        MPI::COMM_WORLD.Send(finalR, result_sz, MPI::BYTE, 0, tag);
     }
     
 }
