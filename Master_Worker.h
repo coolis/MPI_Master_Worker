@@ -39,7 +39,7 @@ private:
     int rank, sz;
     int work_sz, result_sz;
     int mode;
-    const int MASTER_RANK = 0;
+    static const int MASTER_RANK = 0;
     MPI::Status status;
 
     void directMode();

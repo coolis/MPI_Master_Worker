@@ -7,8 +7,8 @@
 
 using namespace std;
 
-#define NUM_SIZE 256 
-#define GRAIN 100
+#define NUM_SIZE 32 
+#define GRAIN 10000
 
 int n_size = 0;
 
@@ -105,11 +105,14 @@ private:
 
 int main(int argc, char *argv[]) {
 
-    int mode = atoi(argv[argc-1]);
+    if (argc < 3) {
+        cout << "Please provide MODE and N" << endl;
+    }
+    int mode = atoi(argv[1]);
 
     MPI::Init (argc, argv);
 
-    Master_Worker *mw = new MW(sizeof(work_t), sizeof(result_t), argv[argc-2], mode);
+    Master_Worker *mw = new MW(sizeof(work_t), sizeof(result_t), argv[2], mode);
     
 
     mw->Run();
