@@ -8,7 +8,7 @@
 using namespace std;
 
 #define NUM_SIZE 256 
-#define GRAIN 100000
+#define GRAIN 100
 
 int n_size = 0;
 
@@ -18,7 +18,7 @@ struct work_t {
 };
 
 struct result_t {
-    char digits[GRAIN][NUM_SIZE] = {0};
+    char digits[GRAIN][NUM_SIZE];
 };
 
 class MW : public Master_Worker {
@@ -64,8 +64,7 @@ public:
                 for (unsigned long j=0; j<GRAIN; j++) {
                     if (res[i]->digits[j][0] == 0)
                         break;
-                    strcpy(tmpR->digits[index], res[i]->digits[j]);
-                    index++;
+                    strcpy(tmpR->digits[index++], res[i]->digits[j]);
                 }
             }
         } catch (int e) {
@@ -84,8 +83,11 @@ public:
         for (unsigned long i=0; i<GRAIN; i++) {
             if (n%(start+i) == 0) {
                 mpz_class tmpI(start+i);
+                mpz_class tmpJ(n/(start+i));
                 char *charI = mpz_to_char(tmpI);
+                char *charJ = mpz_to_char(tmpJ);
                 strcpy(res->digits[index++], charI); 
+                strcpy(res->digits[index++], charJ); 
             }
         }
         return res;

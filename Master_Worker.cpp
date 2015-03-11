@@ -112,7 +112,7 @@ void Master_Worker::assignMode() {
             int exit; 
             MPI::COMM_WORLD.Recv(&exit, 1, MPI::INT, 0, 0);
             if(exit){
-                cout << "fuck" << endl;
+                cout << "Processor " << rank << " completed." << endl;
                 break;
             }
             work_t* newW = (work_t*) malloc(work_sz);
