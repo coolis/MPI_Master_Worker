@@ -8,7 +8,7 @@
 using namespace std;
 
 #define NUM_SIZE 32 
-#define GRAIN 10000
+#define GRAIN 100
 
 int n_size = 0;
 

@@ -36,7 +36,7 @@ public:
         return 1; 
     }
 
-    result_t* compute(work_t* work) {
+    result_t* compute(work_t* &work) {
         int r = 0;
         r = work->x + work->y;
         result_t *res = new result_t(r);
