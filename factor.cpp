@@ -1,13 +1,17 @@
 #include "Master_Worker.h"
 #include "mpi.h"
-#include "gmp.h"
+#include "gmpxx.h"
 #include <vector>
 #include <cmath>
+#include <string>
 
 using namespace std;
 
 #define NUM_SIZE 256 
-#define GRAIN 500
+#define GRAIN 100000
+
+int n_size = 0;
+
 struct work_t {
     char start[NUM_SIZE]; 
     char end[NUM_SIZE];
@@ -19,44 +23,34 @@ struct result_t {
 
 class MW : public Master_Worker {
 public:
-    MW(int wk_sz, int rs_sz, char *n, int g, int m) : Master_Worker(wk_sz, rs_sz, m) {
-        memcpy(this->n, n, sizeof(n)); 
-        this->g = g;
+    MW(unsigned long wk_sz, unsigned long rs_sz, char *n, int m) : Master_Worker(wk_sz, rs_sz, m) {
+        this->n = n; 
     };
 
     void create() {
-        mpz_t n, r;
-        mpz_set_str(n, this->n, 10);
-        mpz_sqrt(r, n); 
+        mpz_class n, r, work_num;
+        n = this->n;
+        r = sqrt(n);  
+        work_num = r/GRAIN;
 
-
-         
-
-        mpz_t r, index, work_num;
-        mpz_sqrt(r, n);
-        mpz_fdiv_q(work_num, r, g);
-        mpz_init(index); 
-        while (mpz_cmp(work_num, index)) {
+        for (mpz_class i=0; i<work_num; i++) { 
             work_t* w = new work_t();
-            mpz_t tmp;
-            mpz_mul(tmp, index, g);
-            mpz_add_ui(tmp, tmp, 1);
-            mpz_set(w->start, tmp);
-            mpz_add_ui(tmp, index, 1);
-            mpz_mul(tmp, tmp, g);
-            mpz_set(w->end, tmp);
+            mpz_class s = i*GRAIN+1;
+            mpz_class e = i*GRAIN+GRAIN;
+            char *start = mpz_to_char(s);
+            char *end = mpz_to_char(s);
+            strcpy(w->start, start);
+            strcpy(w->end, end);
             wPool.push_back(w);
-            mpz_add_ui(index, index, 1);
         }
-        mpz_t remainder;
-        mpz_mod(remainder, r, g); 
-        if (mpz_sgn(remainder) == 1) {
+
+        if (n%GRAIN > 0) {
             work_t* w = new work_t();
-            mpz_t tmp;
-            mpz_sub(tmp, r, remainder);
-            mpz_add_ui(tmp, tmp, 1);
-            mpz_set(w->start, tmp);
-            mpz_set(w->end, r);
+            mpz_class s = n-n%GRAIN+1;
+            char *start = mpz_to_char(s);
+            char *end = mpz_to_char(n);
+            strcpy(w->start, start);
+            strcpy(w->end, end);
             wPool.push_back(w);
         }
         cout << wPool.size() << " works created" << endl;
@@ -65,12 +59,12 @@ public:
     int result(vector<result_t*> &res, result_t* &tmpR) {
         try {
             tmpR = new result_t();
-            int index=0;
-            for (int i=0; i<res.size(); i++) {
-                for (int j=0; j<RESULT_SIZE; j++) {
-                    if (mpz_sgn(res[i]->digits[j]) == 0)
+            unsigned long index=0;
+            for (unsigned long i=0; i<res.size(); i++) {
+                for (unsigned long j=0; j<GRAIN; j++) {
+                    if (res[i]->digits[j][0] == 0)
                         break;
-                    mpz_set(tmpR->digits[index], res[i]->digits[j]);
+                    strcpy(tmpR->digits[index], res[i]->digits[j]);
                     index++;
                 }
             }
@@ -82,45 +76,47 @@ public:
 
     result_t* compute(work_t* &work) {
         result_t *res = new result_t();
-        mpz_t i;
-        int index;
-        mpz_set(i, work->start);
-        while(mpz_cmp(work->end, i)) {
-            mpz_t remainder;
-            mpz_mod(remainder, n, i);
-            if (mpz_sgn(remainder) == 0) {
-                mpz_t tmp;
-                mpz_fdiv_q(tmp, n, i);
-                mpz_set(res->digits[index++], i);
-                mpz_set(res->digits[index++], tmp); 
+        unsigned long index = 0;
+        mpz_class start, end, n;
+        start = work->start;
+        end = work->end;
+        n = this->n;
+        for (unsigned long i=0; i<GRAIN; i++) {
+            if (n%(start+i) == 0) {
+                mpz_class tmpI(start+i);
+                char *charI = mpz_to_char(tmpI);
+                strcpy(res->digits[index++], charI); 
             }
-            mpz_add_ui(i, i, 1);
         }
         return res;
     }
 private:
     char *n;
-    int g;
+
+    char* mpz_to_char(mpz_class &x) {
+       string strX = x.get_str();
+       char *charX = new char(strX.length()+1);
+       strcpy(charX, strX.c_str());
+       return charX;
+    }
 };
 
 int main(int argc, char *argv[]) {
 
-    char *n;
-    memcpy(n, argv[argc-3], sizeof(argv[argc-3]));
-    int g = atoi(argv[argc-2]);
     int mode = atoi(argv[argc-1]);
 
     MPI::Init (argc, argv);
 
-    Master_Worker *mw = new MW(sizeof(work_t), sizeof(result_t), n, g, mode);
+    Master_Worker *mw = new MW(sizeof(work_t), sizeof(result_t), argv[argc-2], mode);
+    
 
     mw->Run();
 
     if (mw->isMaster()) {
         result_t *r = mw->getResult();
         cout << "The result:" << endl;
-        for (int i=0; i<100; i++) {
-            if (r->digits[i] == 0)
+        for (unsigned long i=0; i<GRAIN; i++) {
+            if (r->digits[i][0] == 0)
                 break;
             cout << r->digits[i] << " ";
         }

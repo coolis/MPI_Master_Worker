@@ -11,6 +11,7 @@ struct work_t {
 
 struct result_t {
     int y;
+    string x = "2324";
     result_t(int a) : y(a) {};
 };
 
